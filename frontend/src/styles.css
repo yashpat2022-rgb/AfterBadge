@@ -22,3 +22,22 @@
 .compare-table tbody tr:hover{background:#1b2c3f}
 @media(max-width:750px){.compare-grid{grid-template-columns:1fr 1fr}.compare-grid button{grid-column:1/-1}.comparison-summary-grid{grid-template-columns:1fr}}
 @media(max-width:420px){.compare-grid{grid-template-columns:1fr}.compare-grid button{grid-column:auto}.compare-table th,.compare-table td{padding:11px 7px}}
+
+
+/* v0.3 — evidence-backed, phrase-based symptom pattern explorer */
+.pattern-layout{display:grid;gap:20px}
+.pattern-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}
+.pattern-card{background:#0d1825;border:1px solid #2c4156;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.pattern-top{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.pattern-top h4{font:600 17px 'Space Grotesk',sans-serif;margin:0;color:#e6f6f4}
+.pattern-count{font-size:11px;white-space:nowrap;padding:6px 9px;background:#173e3c;color:#95ebd6;border:1px solid #2a5a55;border-radius:50px;font-weight:700}
+.pattern-card p{margin:0}
+.pattern-example{background:#142336;padding:13px;border-radius:8px;margin-top:auto;display:grid;gap:8px}
+.pattern-example p{font-size:13px;color:#d1e4ea;font-weight:600}
+.pattern-example a{font-size:12px;text-decoration:none;color:#86e4c9}
+.pattern-button{background:#80e9c5;border:0;border-radius:7px;color:#0c1b1f;padding:10px;font-size:12px;font-weight:800;margin-top:4px}
+.pattern-button:hover{background:#a4f4da}
+.pattern-empty{padding:20px;background:#182638;border:1px solid #2b3d53;color:#a8bace;font-size:13px;line-height:1.6;border-radius:10px;margin-top:20px}
+.filter-chip{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:17px 0;padding:11px 13px;border:1px solid #39685e;border-radius:8px;background:#173731;color:#c3eadd;font-size:12px}
+.filter-chip button{background:transparent;border:0;color:#95eed5;font-weight:700;text-decoration:underline}
+@media(max-width:750px){.pattern-grid{grid-template-columns:1fr}}

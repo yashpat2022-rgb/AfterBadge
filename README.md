@@ -1,45 +1,49 @@
-# AutoInsight — automotive problem intelligence
+# AfterBadge — What the badge won't tell you
 
-A full-stack software engineering portfolio project (v0.2) built around **real government vehicle safety data**, not a car marketplace.
+**v0.3 · Full-stack automotive problem intelligence**
 
-It fetches NHTSA complaints and recall campaigns for a make/model/year, normalizes and deduplicates the results in a SQL database, and serves a React dashboard through a FastAPI backend.
+AfterBadge is an independent, educational SWE portfolio app. It helps users
+research owner-reported vehicle problems using public U.S. National Highway
+Traffic Safety Administration (NHTSA) complaint and recall data. It does not
+sell cars or generate unsupported reliability rankings.
 
-## What works in this starter
+## What's working
 
-- Query official NHTSA complaints and recall endpoints using a vehicle year, make and model.
-- Normalize NHTSA component categories, including multi-component complaints.
-- Store complaint ODI IDs and recall campaign IDs in SQL with unique constraints to avoid duplicate inserts.
-- Display counts, component-level report patterns, original complaint text, and official source links.
-- Browse previously imported cars without re-fetching data.
-- Compare two saved vehicles side by side by reported component categories, complaint totals, and recall totals.
-- Follow a link from each comparison car to inspect original NHTSA records.
-- Run offline unit tests using fake API responses.
+- Search a year/make/model and import its complaints and recalls from NHTSA.
+- Normalize and store those records with stable IDs in SQLite (or PostgreSQL).
+- Explore NHTSA component categories and the full original complaint narratives.
+- Compare two saved vehicles side by side by complaint components and recalls.
+- **New in v0.3:** a conservative, transparent **phrase-based symptom explorer**:
+  groups consumer complaint narratives that explicitly mention engine stalls,
+  brake concerns, steering loss, unexpected acceleration, shifting, airbag
+  non-deployment, electrical failures, or overheating.
+- **New in v0.3:** click a group to filter the exact supporting complaint IDs,
+  review the original narratives, and open their official NHTSA source links.
+- Offline automated tests for normalization, comparisons, text matching,
+  grouping, and API integration.
 
-**This is an MVP, not a production-ready public service.** It includes a localhost-only workflow for triggering manual imports. Disable or protect the sync endpoint before public deployment.
+**This is deliberately rule-based, not a trained ML model.** A matching phrase
+is an allegation in a narrative, not proof of a defect. The rules are written
+in `backend/app/patterns.py`, so reviewers can understand and test them.
 
-## Requirements
+## Run on macOS
 
-- Python 3.11 or newer
-- Node.js 20 or newer and npm
-- Internet connection for the NHTSA data requests and initial package installs
+Requires Python 3.11+ and Node.js 20+. Open this directory in VS Code.
 
-## Run it locally
-
-Open two terminal windows from the `autoinsight_starter` folder.
-
-### Terminal 1 — Backend
+### Terminal 1 (backend)
 
 ```bash
 cd backend
 python3 -m venv .venv
-source .venv/bin/activate   # macOS/Linux; on Windows use .venv\Scripts\activate
+source .venv/bin/activate
 python -m pip install -r requirements.txt
+python -m pytest -q
 uvicorn app.main:app --reload
 ```
 
-Go to http://127.0.0.1:8000/docs for interactive API documentation.
+Backend docs: http://127.0.0.1:8000/docs
 
-### Terminal 2 — Frontend
+### Terminal 2 (frontend)
 
 ```bash
 cd frontend
@@ -47,110 +51,67 @@ npm install
 npm run dev
 ```
 
-Open http://127.0.0.1:5173 in your browser.
+Open http://127.0.0.1:5173.
 
-Try: **ACURA / RDX / 2012** — the official NHTSA examples return complaint and recall records for that combination. The live data may change.
+For existing v0.2 users who have pushed GitHub already, **use
+`UPGRADING.md` and the smaller update ZIP** rather than replacing your
+Git-connected folder.
 
-### Run tests
-
-From `backend/` with the virtual environment active:
-
-```bash
-python -m pytest -q
-```
-
-### Optional: PostgreSQL instead of SQLite
-
-The application defaults to SQLite to minimize setup. To use PostgreSQL, from the project root run:
-
-```bash
-docker compose up -d postgres
-```
-
-Then in the backend terminal (before starting uvicorn):
-
-```bash
-export DATABASE_URL='postgresql+psycopg://autoinsight:development_only_change_me@localhost:5432/autoinsight'
-uvicorn app.main:app --reload
-```
-
-Use environment variables or secrets management and rotate the example credentials before any external deployment.
-
-## Compare two vehicles (new in v0.2)
-
-1. Start the backend and frontend as described above.
-2. Search for one vehicle using **Explore a vehicle**, then search for a different make/model/year.
-3. In **Compare two vehicles**, choose each imported car from a dropdown.
-4. Click **Compare vehicles**. The comparison loads from the SQLite database (no fresh NHTSA requests).
-5. Click **Inspect original reports** to see a selected car's full records.
-
-You can also inspect the comparison endpoint directly in your browser or at http://127.0.0.1:8000/docs:
+## New v0.3 data flow
 
 ```text
-GET /api/compare?left_id=1&right_id=2
+React frontend (App.tsx)
+  -> GET /api/vehicles/{id}
+  -> FastAPI (main.py)
+  -> SQLAlchemy (service.py, models.py)
+  -> Complaint narratives in SQLite
+  -> patterns.py: explicit phrase rules + per-pattern ODI IDs
+  -> UI symptom cards -> click to filter source complaint records
 ```
 
-IDs refer to records in your local database; they may differ on your machine. The comparison returns HTTP 400 if the two IDs are the same and HTTP 404 if one is missing.
-
-**Updating from v0.1:** This ZIP is a complete version of the source. If you want to retain your previously imported vehicles, stop the backend and copy `backend/autoinsight.db` from your original project into the new project's `backend` directory before restarting the backend. You do not need to install a separate database, and no schema changes are required in v0.2.
-
-## Architecture
-
-```text
-React + TypeScript web app
-          |
-          | HTTP (/api/...)
-          v
-      FastAPI server
-          |
-          +--- httpx client ---> NHTSA complaints + recalls APIs
-          |
-          +--- ETL service: normalize, upsert, timestamp
-          |
-          v
-     SQLite / PostgreSQL
-```
+There is **no schema migration** in v0.3. Groups are computed from already
+stored complaint descriptions when a vehicle is viewed. The SQLite default
+remains `backend/autoinsight.db` for compatibility with v0.2 installs.
 
 ## API
 
-- `GET /api/health` — health check
-- `GET /api/vehicles` — previously imported cars
-- `GET /api/vehicles/{id}` — problems, complaints and recalls for one vehicle
-- `GET /api/compare?left_id=1&right_id=2` — lightweight side-by-side comparison of two imported cars
-- `POST /api/vehicles/sync?make=ACURA&model=RDX&year=2012` — import or refresh one vehicle **(development only)**
+- `GET /api/health`: health check
+- `GET /api/vehicles`: imported vehicle list
+- `GET /api/vehicles/{vehicle_id}`: vehicle details including `problem_patterns`
+- `GET /api/compare?left_id=1&right_id=2`: side-by-side component comparisons
+- `POST /api/vehicles/sync?make=ACURA&model=RDX&year=2012`: import/refresh NHTSA records (local development only)
 
-The app points back to the official complaint URL (`/complaints/odinumber`) and recall campaign URL (`/recalls/campaignNumber`) for every record.
+Each `problem_patterns` entry contains its rule key/title, matched report
+count, original ODI IDs, and up to three evidence examples with source URLs.
+There can be multiple patterns in a single complaint.
 
-## Data quality notes
+## Important limitations and safeguards
 
-- NHTSA complaints are consumer-submitted safety allegations, not confirmed mechanical defects or representative failure rates. **Do not calculate a reliability score from raw complaint counts.**
-- One complaint may reference more than one component, so category totals can exceed the number of complaints.
-- Model-level recalls do not establish whether any particular VIN has an open recall. Verify VIN-specific status on the official NHTSA site.
-- Model names must match NHTSA's naming. A missing result is not proof that a model is problem-free.
-- This starter only adds/updates records, and does not yet reconcile removals or corrections by a source. It has no scheduled polling or rate limiting yet.
-- We avoid displaying VINs or storing VINs from complaint data.
+- This is not a vehicle safety rating, an actuarial failure probability, or
+  a substitute for a mechanic's pre-purchase inspection.
+- Complaint narratives are user-submitted and may include mistaken statements,
+  duplicates of real-world events, or phrases used in a different context.
+- The rule engine uses explicit phrases and may miss alternate wording or
+  incorrectly match a phrase in a quotation or hypothetical description.
+- A complaint can mention multiple components and match multiple patterns.
+- No matching phrase **does not** mean a vehicle is problem-free.
+- Model-level recall records do not say whether a particular VIN has an open
+  recall. Check that using NHTSA's official VIN lookup.
+- The POST sync endpoint is for local testing; authenticate or disable it
+  before public hosting. It has no production rate-limiting or job scheduler.
+- Avoid committing private .env files or local databases.
 
-## Next engineering milestones
+## Next SWE milestones
 
-1. **Completed in v0.2:** Add a model-year comparison endpoint and side-by-side React views.
-2. Add a separate structured `problem_cluster` layer backed by source complaints (do not imply clusters are confirmed diagnoses).
-3. Implement controlled background sync jobs, retries with backoff, ingestion metrics, and raw payload archival.
-4. Add pagination, database indexes, SQL migrations (Alembic), and integration tests.
-5. Protect ingestion behind authentication/admin-only operations and deploy through CI/CD.
+1. Add explicit phrase context and negation handling, better rule-coverage tests.
+2. Persist structured group assignments with provenance and incremental refreshes.
+3. Add pagination and full-text search over complaint narratives.
+4. Introduce backend sync jobs, retries, metrics, and a CI workflow.
 
-## Source documentation
+## Sources
 
 - https://www.nhtsa.gov/nhtsa-datasets-and-apis
 - https://api.nhtsa.gov/complaints/complaintsByVehicle?make=acura&model=rdx&modelYear=2012
 - https://api.nhtsa.gov/recalls/recallsByVehicle?make=acura&model=rdx&modelYear=2012
 
-AutoInsight is a student portfolio project and is not affiliated with NHTSA.
-
-## Where to look in the code for comparison
-
-- `backend/app/main.py`: `compare()` validates IDs and returns HTTP errors for invalid comparisons.
-- `backend/app/service.py`: `compare_vehicles()` uses SQL queries and `Counter` objects to calculate complaint-component counts without fetching every full complaint narrative.
-- `frontend/src/App.tsx`: `compareSaved()` calls the API; React state holds the selected vehicles and results; the table displays the response.
-- `backend/tests/test_compare.py`: validates comparison counts, categories, HTTP 400 and HTTP 404 responses without calling live NHTSA.
-
-The comparison is intentionally **not** a reliability ranking. Complaint counts are not normalized by vehicle population or exposure and must not be interpreted as failure rates.
+AfterBadge is not affiliated with NHTSA.

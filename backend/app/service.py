@@ -5,6 +5,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from .models import Vehicle, Complaint, Recall
 from .nhtsa import fetch_vehicle_data
+from .patterns import group_complaints
 
 
 def normalize_name(value: str) -> str:
@@ -79,6 +80,7 @@ def vehicle_details(db: Session, vehicle: Vehicle) -> dict:
         "complaint_count": len(complaints),
         "recall_count": len(recalls),
         "top_components": [{"name": name, "count": total} for name, total in count.most_common()],
+        "problem_patterns": group_complaints(complaints),
         "complaints": [
             {
                 "odi_number": item.odi_number,

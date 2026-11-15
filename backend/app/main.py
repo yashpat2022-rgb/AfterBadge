@@ -1,4 +1,4 @@
-"""AutoInsight API. Run with uvicorn app.main:app --reload."""
+"""AfterBadge API. Run with uvicorn app.main:app --reload."""
 import os
 from contextlib import asynccontextmanager
 import httpx
@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     init_database()
     yield
 
-app = FastAPI(title="AutoInsight API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="AfterBadge API", version="0.3.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
