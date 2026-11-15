@@ -91,6 +91,17 @@ RULES = (
             r"\bengine\s+(?:was|is) overheating\b",
         ),
     ),
+
+    PatternRule(
+        "engine_oil_leak",
+        "Reported engine oil leaks",
+        "Complaints explicitly mentioning engine oil leakage.",
+        (
+            r"\b(?:engine\s+)?oil\s+leak(?:s|ing|ed)?\b",
+            r"\bleak(?:s|ing|ed)?\s+(?:engine\s+)?oil\b",
+            r"\boil\s+(?:is\s+)?leaking\s+from\s+(?:the\s+)?engine\b",
+        ),
+    ),
 )
 
 # Compile once at module import, not on every complaint.

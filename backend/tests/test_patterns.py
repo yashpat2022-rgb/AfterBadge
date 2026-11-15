@@ -84,3 +84,19 @@ def test_api_returns_pattern_evidence_from_existing_database():
     finally:
         app.dependency_overrides.clear()
         engine.dispose()
+
+
+def test_detects_engine_oil_leaks():
+    # Test a real-world style complaint
+    complaint = "Vehicle leaking oil at the front of the engine block."
+    result = matched_phrases(complaint)
+
+    assert result["engine_oil_leak"] == "leaking oil"
+
+    # Check that uppercase descriptions also work
+    result = matched_phrases("ENGINE OIL LEAK DETECTED")
+    assert "engine_oil_leak" in result
+
+    # Make sure normal maintenance is not classified as a leak
+    result = matched_phrases("Routine engine oil change completed.")
+    assert "engine_oil_leak" not in result
