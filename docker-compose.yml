@@ -1,0 +1,14 @@
+# Optional PostgreSQL service. The app defaults to SQLite so Docker is not required.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: autoinsight
+      POSTGRES_PASSWORD: development_only_change_me
+      POSTGRES_DB: autoinsight
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - autoinsight_pgdata:/var/lib/postgresql/data
+volumes:
+  autoinsight_pgdata:
