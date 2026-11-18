@@ -2,13 +2,15 @@
 import os
 from contextlib import asynccontextmanager
 import httpx
+from threading import Lock
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from .database import get_db, init_database
-from .models import Vehicle
+from .models import Vehicle, Complaint
 from .service import sync_vehicle, vehicle_details, compare_vehicles
+from app.ai_classifier import classify_complaint
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,6 +18,15 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="AfterBadge API", version="0.3.0", lifespan=lifespan)
+
+# Limit Gemini requests during local development
+AI_REQUEST_LIMIT = 10
+ai_request_count = {"used": 0}
+ai_request_lock = Lock()
+# Store previous AI analysis results
+ai_result_cache = {}
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -69,3 +80,63 @@ async def sync(
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(502, "NHTSA data could not be retrieved. Try again later.") from exc
     return vehicle_details(db, vehicle)
+
+
+
+@app.post("/api/complaints/{odi_number}/analyze")
+def analyze_complaint(
+    odi_number: str,
+    db: Session = Depends(get_db),
+):
+    # AI requests must be explicitly enabled
+    if os.getenv("AFTERBADGE_ENABLE_AI", "false").lower() != "true":
+        raise HTTPException(403, "AI analysis is disabled.")
+
+    # Find the complaint in our database
+    complaint = db.scalar(
+        select(Complaint).where(Complaint.odi_number == odi_number)
+    )
+
+    if complaint is None:
+        raise HTTPException(404, "Complaint not found.")
+
+    # Don't send empty complaints to Gemini
+    if not complaint.summary or not complaint.summary.strip():
+        return {"odi_number": odi_number, "issues": []}
+
+    # Check whether this complaint was already analyzed
+    with ai_request_lock:
+        cached_issues = ai_result_cache.get(odi_number)
+
+    if cached_issues is not None:
+        return {
+            "odi_number": odi_number,
+            "issues": cached_issues
+        }
+
+    # Limit Gemini API requests
+    with ai_request_lock:
+        if ai_request_count["used"] >= AI_REQUEST_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail="AI request limit reached. Restart the backend to reset."
+            )
+
+        ai_request_count["used"] += 1
+
+    # Ask Gemini to analyze the complaint
+    try:
+        result = classify_complaint(complaint.summary)
+    except Exception as exc:
+        raise HTTPException(
+            502, "AI classification failed. Please try again later."
+        ) from exc
+
+    # Save successful Gemini results for future requests
+    with ai_request_lock:
+        ai_result_cache[odi_number] = result["issues"]
+
+    return {
+        "odi_number": odi_number,
+        "issues": result["issues"],
+    }

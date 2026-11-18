@@ -16,3 +16,4 @@ dist/
 *.sqlite
 *.sqlite3
 .env.*
+*.tsbuildinfo
