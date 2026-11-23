@@ -60,9 +60,13 @@ def classify_complaint(complaint):
     if not isinstance(data, dict):
         raise ValueError("Gemini returned an unexpected format")
 
+    reported_issues = data.get("issues")
+    if not isinstance(reported_issues, list):
+        raise ValueError("Gemini returned a missing or invalid issues list")
+
     issues = []
 
-    for issue in data.get("issues", []):
+    for issue in reported_issues:
         if not isinstance(issue, dict):
             continue
 
