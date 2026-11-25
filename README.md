@@ -115,3 +115,19 @@ There can be multiple patterns in a single complaint.
 - https://api.nhtsa.gov/recalls/recallsByVehicle?make=acura&model=rdx&modelYear=2012
 
 AfterBadge is not affiliated with NHTSA.
+
+
+## AI complaint test cases
+
+[The labeled test set](backend/tests/fixtures/complaint_cases.json) has five
+made-up complaints and five excerpts from public NHTSA reports. Each case
+lists the expected symptoms, quotes, and parts. The real cases include links
+to the source and preserve the original NHTSA tags.
+
+The analysis API returns `reported_components` from NHTSA and a separate
+`component` for each AI-found symptom. The AI uses `unknown` when the report
+does not point to a part. The labels describe what the owner reported.
+
+Run `python -m pytest -q` from `backend/` to check the test cases and the
+API response without calling Gemini. The tests check how the app handles
+the labeled examples. They do not measure Gemini's accuracy.

@@ -1,5 +1,9 @@
 
+import json
+from pathlib import Path
 from unittest.mock import MagicMock
+
+import pytest
 from app import ai_classifier
 
 
@@ -124,7 +128,8 @@ def test_ai_endpoint_enabled(monkeypatch):
     # Create a fake database complaint
     fake_db = MagicMock()
     fake_db.scalar.return_value = SimpleNamespace(
-        summary="The engine stalled while driving."
+        summary="The engine stalled while driving.",
+        components="ENGINE, UNKNOWN OR OTHER",
     )
 
     # Create a fake Gemini classification
@@ -134,7 +139,8 @@ def test_ai_endpoint_enabled(monkeypatch):
             "issues": [
                 {
                     "category": "engine_stall",
-                    "evidence": "engine stalled"
+                    "evidence": "engine stalled",
+                    "component": "engine",
                 }
             ]
         }
@@ -160,6 +166,7 @@ def test_ai_endpoint_enabled(monkeypatch):
         # Cached result should work without another Gemini request
         cached = client.post("/api/complaints/10459314/analyze")
         assert cached.status_code == 200
+        assert cached.json() == response.json()
         assert main.ai_request_count["used"] == 10
 
 
@@ -172,6 +179,8 @@ def test_ai_endpoint_enabled(monkeypatch):
         assert result["odi_number"] == "10459314"
         assert len(result["issues"]) == 1
         assert result["issues"][0]["category"] == "engine_stall"
+        assert result["reported_components"] == ["ENGINE", "UNKNOWN OR OTHER"]
+        assert result["issues"][0]["component"] == "engine"
 
         # The 11th request should be blocked
         main.ai_result_cache.pop("10459314", None)
@@ -182,3 +191,34 @@ def test_ai_endpoint_enabled(monkeypatch):
     finally:
         # Restore the original database dependency
         main.app.dependency_overrides.pop(get_db, None)
+
+
+CASES = json.loads((Path(__file__).parent / "fixtures" / "complaint_cases.json").read_text())
+
+
+@pytest.mark.parametrize("case", CASES, ids=[case["id"] for case in CASES])
+def test_labeled_case_keeps_component_and_quote(monkeypatch, case):
+    expected = case["expected_issues"]
+    for issue in expected:
+        assert issue["evidence"] in case["complaint"]
+        assert issue["component"] in ai_classifier.COMPONENTS
+    if "odi_number" in case:
+        assert case["source_url"].endswith("=" + case["odi_number"])
+
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value.text = json.dumps({"issues": expected})
+    monkeypatch.setattr(ai_classifier, "create_gemini_client", lambda: fake_client)
+
+    assert ai_classifier.classify_complaint(case["complaint"]) == {"issues": expected}
+
+
+def test_unlisted_component_becomes_unknown(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value.text = json.dumps({"issues": [
+        {"category": "loud_bang", "evidence": "heard a bang", "component": "window motor"},
+        {"category": "engine_stall", "evidence": "engine stalled"},
+    ]})
+    monkeypatch.setattr(ai_classifier, "create_gemini_client", lambda: fake_client)
+
+    result = ai_classifier.classify_complaint("I heard a bang, then the engine stalled.")
+    assert [issue["component"] for issue in result["issues"]] == ["unknown", "unknown"]

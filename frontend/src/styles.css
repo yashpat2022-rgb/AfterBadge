@@ -126,6 +126,19 @@
   list-style: none;
 }
 
+.ai-issue-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 3px 10px;
+}
+
+.ai-issue-header span {
+  color: #a6b9ca;
+  font-size: 12px;
+}
+
 .ai-issues strong {
   display: block;
   color: #a4f4da;
@@ -147,6 +160,13 @@
 }
 
 .ai-analysis .ai-analysis-note {
+  color: #a6b9ca;
+  font-size: 12px;
+}
+
+
+.reported-parts-label {
+  align-self: center;
   color: #a6b9ca;
   font-size: 12px;
 }

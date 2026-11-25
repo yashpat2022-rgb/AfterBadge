@@ -673,6 +673,7 @@ export default function App() {
                         <span>{c.date_filed || "Date unavailable"}</span>
                       </div>
                       <div className="tags">
+                        <span className="reported-parts-label">NHTSA parts</span>
                         {c.components.map((name) => (
                           <span className="tag" key={name}>
                             {name}

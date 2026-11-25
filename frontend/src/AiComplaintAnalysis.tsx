@@ -1,6 +1,7 @@
 type AiIssue = {
   category: string;
   evidence: string;
+  component?: string;
 };
 
 export type ComplaintAnalysis =
@@ -60,14 +61,19 @@ export default function AiComplaintAnalysis({
             ) : (
               <>
                 <ul className="ai-issues">
-                  {analysis.issues.map(({ category, evidence }, index) => (
+                  {analysis.issues.map(({ category, component, evidence }, index) => (
                     <li key={index}>
-                      <strong>{category.replace(/_/g, " ")}</strong>
+                      <div className="ai-issue-header">
+                        <strong>{category.replace(/_/g, " ")}</strong>
+                        <span>{component && component !== "unknown"
+                          ? `AI part: ${component.replace(/_/g, " ")}`
+                          : "AI part unknown"}</span>
+                      </div>
                       <blockquote>“{evidence}”</blockquote>
                     </li>
                   ))}
                 </ul>
-                <p className="ai-analysis-note">These are symptoms from the owner’s report. The cause remains unverified.</p>
+                <p className="ai-analysis-note">AI labels describe the reported symptoms. The cause remains unverified.</p>
               </>
             )}
           </>

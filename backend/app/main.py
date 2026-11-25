@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from .database import get_db, init_database
 from .models import Vehicle, Complaint
-from .service import sync_vehicle, vehicle_details, compare_vehicles
+from .service import component_names, sync_vehicle, vehicle_details, compare_vehicles
 from .nhtsa import fetch_vehicle_options
 from app.ai_classifier import classify_complaint
 
@@ -126,19 +126,21 @@ def analyze_complaint(
     if complaint is None:
         raise HTTPException(404, "Complaint not found.")
 
+    report = {
+        "odi_number": odi_number,
+        "reported_components": component_names(complaint.components),
+    }
+
     # Don't send empty complaints to Gemini
     if not complaint.summary or not complaint.summary.strip():
-        return {"odi_number": odi_number, "issues": []}
+        return {**report, "issues": []}
 
     # Check whether this complaint was already analyzed
     with ai_request_lock:
         cached_issues = ai_result_cache.get(odi_number)
 
     if cached_issues is not None:
-        return {
-            "odi_number": odi_number,
-            "issues": cached_issues
-        }
+        return {**report, "issues": cached_issues}
 
     # Limit Gemini API requests
     with ai_request_lock:
@@ -162,7 +164,4 @@ def analyze_complaint(
     with ai_request_lock:
         ai_result_cache[odi_number] = result["issues"]
 
-    return {
-        "odi_number": odi_number,
-        "issues": result["issues"],
-    }
+    return {**report, "issues": result["issues"]}

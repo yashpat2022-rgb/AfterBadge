@@ -1,0 +1,183 @@
+[
+  {
+    "id": "demo-multi",
+    "name": "Stall and heavy steering",
+    "complaint": "The engine shut off at a red light. After I restarted the car, the steering wheel was hard to turn.",
+    "reported_components": [],
+    "expected_issues": [
+      {
+        "category": "engine_stall",
+        "component": "engine",
+        "evidence": "The engine shut off at a red light."
+      },
+      {
+        "category": "heavy_steering",
+        "component": "steering",
+        "evidence": "the steering wheel was hard to turn"
+      }
+    ],
+    "note": "Count both symptoms."
+  },
+  {
+    "id": "demo-negated",
+    "name": "Brake light with normal brakes",
+    "complaint": "The brake warning light came on. The brakes did not fail and the pedal felt normal.",
+    "reported_components": [],
+    "expected_issues": [
+      {
+        "category": "brake_warning",
+        "component": "brakes",
+        "evidence": "The brake warning light came on."
+      }
+    ],
+    "note": "Count the warning light only."
+  },
+  {
+    "id": "demo-vague",
+    "name": "Vague report",
+    "complaint": "Something seemed off during the drive, but I cannot describe what happened.",
+    "reported_components": [],
+    "expected_issues": [],
+    "note": "No clear symptom to label."
+  },
+  {
+    "id": "demo-shift",
+    "name": "Delayed shifting",
+    "complaint": "When I put the car in drive, it took several seconds before it moved.",
+    "reported_components": [],
+    "expected_issues": [
+      {
+        "category": "delayed_gear_engagement",
+        "component": "power_train",
+        "evidence": "it took several seconds before it moved"
+      }
+    ],
+    "note": "Capture the delay. The cause is open."
+  },
+  {
+    "id": "demo-unknown-part",
+    "name": "Unexplained bang",
+    "complaint": "I heard a loud bang while driving. I could not tell where it came from.",
+    "reported_components": [],
+    "expected_issues": [
+      {
+        "category": "loud_bang",
+        "component": "unknown",
+        "evidence": "I heard a loud bang while driving."
+      }
+    ],
+    "note": "A symptom is clear. The part is unknown."
+  },
+  {
+    "id": "nhtsa-11577048",
+    "name": "Brakes and airbags",
+    "complaint": "the brakes would not stop the car. There was damage to the front but the air bags did not deploy.",
+    "odi_number": "11577048",
+    "source_url": "https://api.nhtsa.gov/complaints/odinumber?odinumber=11577048",
+    "reported_components": [
+      "ENGINE",
+      "SERVICE BRAKES",
+      "UNKNOWN OR OTHER"
+    ],
+    "expected_issues": [
+      {
+        "category": "braking_loss",
+        "component": "brakes",
+        "evidence": "the brakes would not stop the car"
+      },
+      {
+        "category": "airbag_non_deployment",
+        "component": "air_bags",
+        "evidence": "the air bags did not deploy"
+      }
+    ],
+    "note": "The excerpt mentions airbags even though the original tags do not."
+  },
+  {
+    "id": "nhtsa-11595548",
+    "name": "Shattered sunroof",
+    "complaint": "after i pulled over i saw that my sunroof was shattered",
+    "odi_number": "11595548",
+    "source_url": "https://api.nhtsa.gov/complaints/odinumber?odinumber=11595548",
+    "reported_components": [
+      "STRUCTURE",
+      "UNKNOWN OR OTHER",
+      "VISIBILITY/WIPER"
+    ],
+    "expected_issues": [
+      {
+        "category": "sunroof_shattered",
+        "component": "body",
+        "evidence": "my sunroof was shattered"
+      }
+    ],
+    "note": "The sunroof was reported shattered. The cause is unknown."
+  },
+  {
+    "id": "nhtsa-11605457",
+    "name": "No warning while reversing",
+    "complaint": "When in reverse vehicle does not issue audible warning alerts for other vehicles, objects or pedestrians crossing or approaching behind or from the side.",
+    "odi_number": "11605457",
+    "source_url": "https://api.nhtsa.gov/complaints/odinumber?odinumber=11605457",
+    "reported_components": [
+      "BACK OVER PREVENTION",
+      "FORWARD COLLISION AVOIDANCE"
+    ],
+    "expected_issues": [
+      {
+        "category": "rear_warning_missing",
+        "component": "driver_assistance",
+        "evidence": "vehicle does not issue audible warning alerts"
+      }
+    ],
+    "note": "This describes a missing alert while reversing."
+  },
+  {
+    "id": "nhtsa-11681478",
+    "name": "Steering, brakes, and accelerator",
+    "complaint": "car steering locked up. Could not steer the car. Brakes failed. Car accelerator engaged.",
+    "odi_number": "11681478",
+    "source_url": "https://api.nhtsa.gov/complaints/odinumber?odinumber=11681478",
+    "reported_components": [
+      "AIR BAGS",
+      "STEERING",
+      "UNKNOWN OR OTHER"
+    ],
+    "expected_issues": [
+      {
+        "category": "steering_lock",
+        "component": "steering",
+        "evidence": "car steering locked up"
+      },
+      {
+        "category": "braking_loss",
+        "component": "brakes",
+        "evidence": "Brakes failed."
+      },
+      {
+        "category": "unexpected_accelerator_engagement",
+        "component": "unknown",
+        "evidence": "Car accelerator engaged."
+      }
+    ],
+    "note": "Count steering and brakes separately. The cause of the accelerator report is unclear."
+  },
+  {
+    "id": "nhtsa-11184030",
+    "name": "Failed emissions inspection",
+    "complaint": "IT KEEP FAILING THE STATE OF OHIO VECHICLE INSPECTION E-CHECK TEST AND THE SAME CODE KEEPS COMING UP..... P1401",
+    "odi_number": "11184030",
+    "source_url": "https://api.nhtsa.gov/complaints/odinumber?odinumber=11184030",
+    "reported_components": [
+      "FUEL/PROPULSION SYSTEM"
+    ],
+    "expected_issues": [
+      {
+        "category": "emissions_inspection_failure",
+        "component": "unknown",
+        "evidence": "IT KEEP FAILING THE STATE OF OHIO VECHICLE INSPECTION E-CHECK TEST"
+      }
+    ],
+    "note": "The owner reports repeated inspection failure. The excerpt leaves the part open."
+  }
+]
