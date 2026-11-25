@@ -1,78 +1,78 @@
-
 type AiIssue = {
   category: string;
   evidence: string;
 };
 
+export type ComplaintAnalysis =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ready"; issues: AiIssue[]; expanded: boolean };
+
 type AiComplaintAnalysisProps = {
-  issues: AiIssue[] | null;
-  loading: boolean;
-  error: string | null;
+  odiNumber: string;
+  sourceUrl: string;
+  analysis?: ComplaintAnalysis;
+  onAnalyze: () => void;
 };
 
 export default function AiComplaintAnalysis({
-  issues,
-  loading,
-  error,
+  odiNumber,
+  sourceUrl,
+  analysis,
+  onAnalyze,
 }: AiComplaintAnalysisProps) {
-  // Show a message while Gemini is analyzing
-  if (loading) {
-    return (
-      <div className="ai-analysis">
-        <p>✨ Gemini is analyzing this complaint...</p>
-      </div>
-    );
+  const panelId = `complaint-analysis-${odiNumber}`;
+  const expanded = Boolean(analysis && (analysis.status !== "ready" || analysis.expanded));
+  let buttonLabel = "Analyze with AI";
+  if (analysis?.status === "loading") buttonLabel = "Analyzing…";
+  if (analysis?.status === "error") buttonLabel = "Retry analysis";
+  if (analysis?.status === "ready") {
+    buttonLabel = expanded ? "Hide analysis" : "Show analysis";
   }
 
-  // Show an error if analysis fails
-  if (error) {
-    return (
-      <div className="ai-analysis">
-        <p>Unable to analyze this complaint: {error}</p>
-      </div>
-    );
-  }
-
-  // Nothing to display before analysis
-  if (issues === null) {
-    return null;
-  }
-
-  // Handle complaints with no detected symptoms
-  if (issues.length === 0) {
-    return (
-      <div className="ai-analysis">
-        <h4>✨ AI Analysis</h4>
-        <p>No clear symptoms were identified.</p>
-      </div>
-    );
-  }
-
-  // Display the issues Gemini identified
   return (
-    <div className="ai-analysis">
-      <h4>✨ Gemini AI Analysis</h4>
+    <>
+      <div className="complaint-actions">
+        <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+          View original NHTSA record ↗
+        </a>
+        <button
+          type="button"
+          className="complaint-ai-button"
+          onClick={onAnalyze}
+          aria-controls={panelId}
+          aria-expanded={expanded}
+          aria-disabled={analysis?.status === "loading" || undefined}
+          aria-label={`${buttonLabel} for ODI ${odiNumber}`}
+        >
+          {buttonLabel}
+        </button>
+      </div>
 
-      <p>
-        Potential issues mentioned in this complaint:
-      </p>
-
-      {issues.map((issue, index) => (
-        <div className="ai-issue" key={index}>
-          <strong>
-            {issue.category.replace(/_/g, " ")}
-          </strong>
-
-          <p>
-            <strong>Evidence:</strong> "{issue.evidence}"
-          </p>
-        </div>
-      ))}
-
-      <p className="muted">
-        AI-generated interpretation of an owner report.
-        These are not verified vehicle defects.
-      </p>
-    </div>
+      <div id={panelId} className="ai-analysis" hidden={!expanded} aria-live="polite">
+        {analysis?.status === "loading" && <p>Looking for symptoms in this report…</p>}
+        {analysis?.status === "error" && <p>{analysis.message}</p>}
+        {analysis?.status === "ready" && (
+          <>
+            <h4>AI analysis</h4>
+            {analysis.issues.length === 0 ? (
+              <p>No clear symptoms found in this report.</p>
+            ) : (
+              <>
+                <ul className="ai-issues">
+                  {analysis.issues.map(({ category, evidence }, index) => (
+                    <li key={index}>
+                      <strong>{category.replace(/_/g, " ")}</strong>
+                      <blockquote>“{evidence}”</blockquote>
+                    </li>
+                  ))}
+                </ul>
+                <p className="ai-analysis-note">These are symptoms from the owner’s report. The cause remains unverified.</p>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }

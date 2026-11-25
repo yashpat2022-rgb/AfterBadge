@@ -59,3 +59,94 @@
   color: #8ee5cf;
   padding: 4px 10px;
 }
+
+.complaint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid #263b51;
+}
+
+.complaint-ai-button {
+  min-height: 38px;
+  padding: 7px 13px;
+  border: 1px solid #386e69;
+  border-radius: 8px;
+  background: #1b3c40;
+  color: #a4f4da;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.complaint-ai-button:hover,
+.complaint-ai-button[aria-expanded="true"] {
+  background: #235453;
+}
+
+.complaint-ai-button:focus-visible {
+  outline: 2px solid #8ee5cf;
+  outline-offset: 3px;
+}
+
+.complaint-ai-button[aria-disabled="true"] {
+  cursor: wait;
+}
+
+.ai-analysis {
+  margin-top: 13px;
+  padding: 13px 15px;
+  border: 1px solid #2a3b50;
+  border-radius: 8px;
+  background: #142336;
+}
+
+.ai-analysis h4,
+.ai-analysis p {
+  margin: 0;
+}
+
+.ai-analysis h4 {
+  color: #dce9f2;
+  font-size: 14px;
+}
+
+.ai-analysis h4 + p {
+  margin-top: 6px;
+}
+
+.ai-issues {
+  display: grid;
+  gap: 10px;
+  margin: 9px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-issues strong {
+  display: block;
+  color: #a4f4da;
+  font-size: 13px;
+}
+
+.ai-issues strong::first-letter {
+  text-transform: uppercase;
+}
+
+.ai-issues blockquote {
+  margin: 4px 0 0;
+  padding-left: 9px;
+  border-left: 2px solid #386e69;
+  color: #becdda;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.ai-analysis .ai-analysis-note {
+  color: #a6b9ca;
+  font-size: 12px;
+}

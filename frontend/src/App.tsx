@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AiComplaintAnalysis from "./AiComplaintAnalysis";
+import type { ComplaintAnalysis } from "./AiComplaintAnalysis";
 import VehicleSearch from "./VehicleSearch";
 import type { VehicleSelection } from "./VehicleSearch";
 
@@ -71,16 +72,7 @@ function ErrorMessage({ message }: { message: string }) {
 }
 
 export default function App() {
-  const [aiResults, setAiResults] = useState<
-    Record<
-      string,
-      {
-        issues: { category: string; evidence: string }[] | null;
-        loading: boolean;
-        error: string | null;
-      }
-    >
-  >({});
+  const [aiResults, setAiResults] = useState<Record<string, ComplaintAnalysis>>({});
 
   const [selection, setSelection] = useState<VehicleSelection>({ year: "", make: "", model: "" });
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -106,47 +98,39 @@ export default function App() {
   }
 
   async function analyzeComplaint(odiNumber: string) {
-    // Show loading state for this complaint
-    setAiResults((previous) => ({
-      ...previous,
-      [odiNumber]: {
-        issues: null,
-        loading: true,
-        error: null,
-      },
-    }));
+    const current = aiResults[odiNumber];
+    if (current?.status === "loading") return;
+    if (current?.status === "ready") {
+      setAiResults((previous) => ({
+        ...previous,
+        [odiNumber]: { ...current, expanded: !current.expanded },
+      }));
+      return;
+    }
+
+    setAiResults((previous) => ({ ...previous, [odiNumber]: { status: "loading" } }));
 
     try {
-      // Ask our Python backend to analyze this complaint
       const response = await fetch(
         `/api/complaints/${encodeURIComponent(odiNumber)}/analyze`,
         { method: "POST" },
       );
+      const data = await response.json().catch(() => null);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "AI analysis failed.");
+      if (!response.ok || !Array.isArray(data?.issues)) {
+        throw new Error(data?.detail || "Could not analyze this report.");
       }
 
-      // Save the AI results for this complaint
       setAiResults((previous) => ({
         ...previous,
-        [odiNumber]: {
-          issues: data.issues,
-          loading: false,
-          error: null,
-        },
+        [odiNumber]: { status: "ready", issues: data.issues, expanded: true },
       }));
     } catch (error) {
-      // Display an error if something goes wrong
       setAiResults((previous) => ({
         ...previous,
         [odiNumber]: {
-          issues: null,
-          loading: false,
-          error:
-            error instanceof Error ? error.message : "Something went wrong.",
+          status: "error",
+          message: error instanceof Error ? error.message : "Could not analyze this report.",
         },
       }));
     }
@@ -696,31 +680,11 @@ export default function App() {
                         ))}
                       </div>
                       <p>{c.summary || "No description provided."}</p>
-                      <a
-                        href={c.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View original NHTSA record ↗
-                      </a>
-
-                      <button
-                        type="button"
-                        onClick={() => analyzeComplaint(c.odi_number)}
-                        disabled={Boolean(
-                          aiResults[c.odi_number]?.loading ||
-                          aiResults[c.odi_number]?.issues,
-                        )}
-                      >
-                        {aiResults[c.odi_number]?.loading
-                          ? "✨ Analyzing..."
-                          : "✨ Analyze with AI"}
-                      </button>
-
                       <AiComplaintAnalysis
-                        issues={aiResults[c.odi_number]?.issues ?? null}
-                        loading={aiResults[c.odi_number]?.loading ?? false}
-                        error={aiResults[c.odi_number]?.error ?? null}
+                        odiNumber={c.odi_number}
+                        sourceUrl={c.source_url}
+                        analysis={aiResults[c.odi_number]}
+                        onAnalyze={() => void analyzeComplaint(c.odi_number)}
                       />
                     </article>
                   ))}
