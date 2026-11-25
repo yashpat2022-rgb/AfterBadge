@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import AiComplaintAnalysis from "./AiComplaintAnalysis";
+import VehicleSearch from "./VehicleSearch";
+import type { VehicleSelection } from "./VehicleSearch";
 
 type ComponentStat = { name: string; count: number };
 type Complaint = {
@@ -80,9 +82,7 @@ export default function App() {
     >
   >({});
 
-  const [make, setMake] = useState("ACURA");
-  const [model, setModel] = useState("RDX");
-  const [year, setYear] = useState("2012");
+  const [selection, setSelection] = useState<VehicleSelection>({ year: "", make: "", model: "" });
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [history, setHistory] = useState<VehicleSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,9 +164,7 @@ export default function App() {
       if (!response.ok) throw new Error("Unable to load saved vehicle.");
       const data: Vehicle = await response.json();
       setVehicle(data);
-      setMake(data.make);
-      setModel(data.model);
-      setYear(String(data.year));
+      setSelection({ make: data.make, model: data.model, year: String(data.year) });
       setTab("problems");
       setComponentFilter("ALL");
       setPatternFilter(null);
@@ -179,14 +177,12 @@ export default function App() {
 
   async function search(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const { year, make, model } = selection;
+    if (loading || !year || !make || !model) return;
     setError("");
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        make: make.trim(),
-        model: model.trim(),
-        year,
-      });
+      const params = new URLSearchParams({ year, make, model });
       const response = await fetch(`/api/vehicles/sync?${params}`, {
         method: "POST",
       });
@@ -295,46 +291,12 @@ export default function App() {
           <div className="panel-title">
             <span className="section-number">01</span> EXPLORE A VEHICLE
           </div>
-          <form className="search-grid" onSubmit={search}>
-            <label>
-              MAKE
-              <input
-                value={make}
-                onChange={(e) => setMake(e.target.value)}
-                required
-                maxLength={80}
-                placeholder="e.g. BMW"
-              />
-            </label>
-            <label>
-              MODEL
-              <input
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                required
-                maxLength={100}
-                placeholder="e.g. 330I"
-              />
-            </label>
-            <label>
-              MODEL YEAR
-              <input
-                type="number"
-                min="1950"
-                max="2035"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                required
-              />
-            </label>
-            <button disabled={loading}>
-              {loading ? "Fetching records..." : "Explore vehicle  ↗"}
-            </button>
-          </form>
-          <p className="hint">
-            Try ACURA / RDX / 2012 for a small example. Use the official NHTSA
-            model naming for best results.
-          </p>
+          <VehicleSearch
+            selection={selection}
+            onChange={setSelection}
+            onSearch={search}
+            submitting={loading}
+          />
           {error && <ErrorMessage message={error} />}
         </section>
 
@@ -508,8 +470,7 @@ export default function App() {
             <div className="empty-icon">⌕</div>
             <h2>Start with a vehicle.</h2>
             <p>
-              Enter a make, model and year to import real NHTSA records and
-              explore the results.
+              Choose a year, make, and model to see the available NHTSA reports.
             </p>
           </div>
         )}
@@ -697,6 +658,9 @@ export default function App() {
                     ))}
                   </select>
                 </div>
+                {vehicle.complaint_count === 0 && (
+                  <p className="muted">No complaints found under this model name. You can try the model family in the dropdown.</p>
+                )}
                 {selectedPattern && (
                   <div className="filter-chip">
                     <span>

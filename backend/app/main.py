@@ -1,15 +1,17 @@
 """AfterBadge API. Run with uvicorn app.main:app --reload."""
 import os
 from contextlib import asynccontextmanager
+from datetime import date
 import httpx
 from threading import Lock
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from .database import get_db, init_database
 from .models import Vehicle, Complaint
 from .service import sync_vehicle, vehicle_details, compare_vehicles
+from .nhtsa import fetch_vehicle_options
 from app.ai_classifier import classify_complaint
 
 @asynccontextmanager
@@ -21,6 +23,8 @@ app = FastAPI(title="AfterBadge API", version="0.3.0", lifespan=lifespan)
 
 # Limit Gemini requests during local development
 AI_REQUEST_LIMIT = 10
+MIN_MODEL_YEAR = 1949
+MAX_MODEL_YEAR = 2035
 ai_request_count = {"used": 0}
 ai_request_lock = Lock()
 # Store previous AI analysis results
@@ -37,6 +41,28 @@ app.add_middleware(
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/api/vehicle-options")
+async def vehicle_options(
+    response: Response,
+    year: int | None = Query(default=None, ge=MIN_MODEL_YEAR, le=MAX_MODEL_YEAR),
+    make: str | None = Query(default=None, min_length=1, max_length=80),
+):
+    if year is None:
+        if make is not None:
+            raise HTTPException(422, "Choose a model year first.")
+        # NHTSA's model-years endpoint can return a short list of older years.
+        latest = min(date.today().year + 1, MAX_MODEL_YEAR)
+        return {"options": [str(value) for value in range(latest, MIN_MODEL_YEAR - 1, -1)]}
+
+    try:
+        options, incomplete = await fetch_vehicle_options(year, make)
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(502, "Could not load vehicle options. Try again.") from exc
+    if not incomplete:
+        response.headers["Cache-Control"] = "private, max-age=300"
+    return {"options": options, "incomplete": incomplete}
+
 
 @app.get("/api/vehicles")
 def vehicles(db: Session = Depends(get_db)):
@@ -69,7 +95,7 @@ def compare(
 async def sync(
     make: str = Query(min_length=1, max_length=80),
     model: str = Query(min_length=1, max_length=100),
-    year: int = Query(ge=1950, le=2035),
+    year: int = Query(ge=MIN_MODEL_YEAR, le=MAX_MODEL_YEAR),
     db: Session = Depends(get_db),
 ):
     # This endpoint is intended for localhost development only, NOT a public deployment.
